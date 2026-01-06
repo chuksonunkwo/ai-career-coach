@@ -14,41 +14,51 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel("gemini-2.0-flash")
 
-GUMROAD_PRODUCT_ID = "A70XLqybP3M3f6C-euPZzg=="
+# FIXED: We are using the URL Slug from your screenshot
+# This matches: chukster06.gumroad.com/l/AI-Career-Architect
+GUMROAD_PRODUCT_PERMALINK = "AI-Career-Architect"
 
 # --- 2. AUTHENTICATION LOGIC ---
 def verify_gumroad_key(license_key):
     license_key = str(license_key).strip()
     
-    # Backdoor for you (optional)
-    if license_key == "admin_2026": 
+    # Backdoor for testing (You can use this if the email key fails)
+    if license_key == "admin_test_2026": 
         return True, "Welcome Admin."
 
     if not license_key:
         return False, "⚠️ Please enter a license key."
 
+    print(f"Checking Key: {license_key} against Product: {GUMROAD_PRODUCT_PERMALINK}")
+
     try:
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
             data={
-                "product_permalink": GUMROAD_PRODUCT_ID,
+                "product_permalink": GUMROAD_PRODUCT_PERMALINK,
                 "license_key": license_key
             },
-            timeout=5
+            timeout=10
         )
         data = response.json()
         
+        # Debugging: Print what Gumroad says to the server logs
+        print(f"Gumroad Response: {data}")
+
         if data.get("success") == True:
             if data["purchase"].get("refunded", False):
                 return False, "❌ Access Denied: This purchase was refunded."
             if data["purchase"].get("chargebacked", False):
                 return False, "❌ Access Denied: Payment dispute detected."
+            
+            # If we get here, it's a valid, paid key!
             return True, "✅ Success! Loading AI..."
         else:
-            return False, "❌ Invalid License Key. Please check your email."
+            return False, "❌ Invalid License Key. Please check your receipt email."
             
     except Exception as e:
-        return False, f"⚠️ Connection Error: {e}"
+        print(f"Error: {e}")
+        return False, f"⚠️ System Connection Error. Try again."
 
 # --- 3. PDF GENERATOR ---
 def create_pdf(markdown_content):
@@ -134,13 +144,11 @@ def career_coach_logic(license_key, resume_file, jd_file):
     except Exception as e:
         return f"System Error: {e}", None
 
-# --- 5. THE UI (CUSTOM LOGIN FLOW) ---
-# We use the local file. Make sure you upload 'logo.jpg' to GitHub!
+# --- 5. THE UI ---
 LOGO_PATH = "logo.jpg" 
 
 with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as app:
     
-    # State
     user_key_state = gr.State("")
 
     # --- VIEW 1: LOGIN ---
@@ -149,17 +157,16 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
         with gr.Row():
             with gr.Column(scale=1): pass
             with gr.Column(scale=2):
-                # CLEANED: Removed 'show_download_button' etc.
-                # If logo.jpg is missing, this box will just be empty (won't crash)
+                
+                # Checks if you actually uploaded the file to GitHub
                 if os.path.exists(LOGO_PATH):
-                    gr.Image(value=LOGO_PATH, show_label=False, height=200)
+                    gr.Image(value=LOGO_PATH, show_label=False, height=200, container=False)
                 else:
-                    gr.Markdown("*(Logo not found: Please upload logo.jpg to GitHub)*")
+                    gr.Markdown("### ⚠️ Admin Note: Please upload 'logo.jpg' to GitHub.")
 
                 gr.Markdown("# 🔒 Client Portal Access")
                 gr.Markdown("Please enter your **Gumroad License Key** to proceed.")
                 
-                # CLEANED: Removed 'show_copy_button'
                 key_input = gr.Textbox(
                     label="License Key", 
                     placeholder="e.g. 1234-5678-ABCD-EFGH", 
@@ -173,7 +180,7 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
     with gr.Column(visible=False) as main_view:
         with gr.Row():
             if os.path.exists(LOGO_PATH):
-                gr.Image(value=LOGO_PATH, show_label=False, height=50, scale=0)
+                gr.Image(value=LOGO_PATH, show_label=False, height=50, scale=0, container=False)
             gr.Markdown("# 🏛️ AI Career Architect")
         
         gr.Markdown("---")
