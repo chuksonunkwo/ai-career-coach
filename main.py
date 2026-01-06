@@ -7,7 +7,6 @@ from xhtml2pdf import pisa
 import requests
 
 # --- 1. CONFIGURATION ---
-# The Brain
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     print("⚠️ SYSTEM ALERT: GEMINI_API_KEY is missing.")
@@ -15,17 +14,13 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel("gemini-2.0-flash")
 
-# The Gatekeeper (Your Gumroad ID)
 GUMROAD_PRODUCT_ID = "A70XLqybP3M3f6C-euPZzg=="
 
 # --- 2. AUTHENTICATION LOGIC ---
 def verify_gumroad_key(license_key):
-    """
-    Verifies key with Gumroad. Returns (IsValid, Message).
-    """
     license_key = str(license_key).strip()
     
-    # Backdoor for you (optional, remove before selling)
+    # Backdoor for you (optional)
     if license_key == "admin_2026": 
         return True, "Welcome Admin."
 
@@ -83,7 +78,7 @@ def create_pdf(markdown_content):
         pisa.CreatePDF(styled_html, dest=f)
     return output_filename
 
-# --- 4. CORE AI LOGIC (With Security Check) ---
+# --- 4. CORE AI LOGIC ---
 def extract_pdf_text(filepath):
     if not filepath: return ""
     try:
@@ -94,7 +89,6 @@ def extract_pdf_text(filepath):
     except Exception as e: return str(e)
 
 def career_coach_logic(license_key, resume_file, jd_file):
-    # SECURITY CHECK: Re-verify key before generating (prevents UI hacks)
     is_valid, msg = verify_gumroad_key(license_key)
     if not is_valid:
         return f"🔒 SECURITY ALERT: {msg}", None
@@ -141,23 +135,21 @@ def career_coach_logic(license_key, resume_file, jd_file):
         return f"System Error: {e}", None
 
 # --- 5. THE UI (CUSTOM LOGIN FLOW) ---
-# Paste your Logo URL here. It can be from your website, Imgur, or Google Drive (direct link).
 LOGO_URL = "https://cdn-icons-png.flaticon.com/512/3135/3135805.png" 
 
 with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as app:
     
-    # --- STATE MANAGEMENT ---
-    # We use this to store the key after login so we can pass it to the AI
+    # State
     user_key_state = gr.State("")
 
-    # --- VIEW 1: THE LOGIN SCREEN ---
+    # --- VIEW 1: LOGIN ---
     with gr.Column(visible=True) as login_view:
-        gr.Markdown("## ") # Spacer
+        gr.Markdown("## ")
         with gr.Row():
             with gr.Column(scale=1): pass
             with gr.Column(scale=2):
-                # THE LOGO IMAGE
-                gr.Image(value=LOGO_URL, show_label=False, show_download_button=False, container=False, height=100)
+                # FIXED: Removed 'show_download_button' to fix crash
+                gr.Image(value=LOGO_URL, show_label=False, container=False, height=100)
                 
                 gr.Markdown("# 🔒 Client Portal Access")
                 gr.Markdown("Please enter your **Gumroad License Key** to proceed.")
@@ -172,11 +164,11 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
                 login_msg = gr.Markdown("")
             with gr.Column(scale=1): pass
 
-    # --- VIEW 2: THE MAIN APP (Hidden initially) ---
+    # --- VIEW 2: MAIN APP ---
     with gr.Column(visible=False) as main_view:
-        # App Header with Small Logo
         with gr.Row():
-            gr.Image(value=LOGO_URL, show_label=False, show_download_button=False, container=False, height=50, scale=0)
+            # FIXED: Removed 'show_download_button' here too
+            gr.Image(value=LOGO_URL, show_label=False, container=False, height=50, scale=0)
             gr.Markdown("# 🏛️ Executive Career Architect")
         
         gr.Markdown("---")
@@ -192,11 +184,9 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
             pdf_download = gr.File(label="📄 Download Report")
 
     # --- 6. EVENT WIRING ---
-    
     def attempt_login(key):
         is_valid, msg = verify_gumroad_key(key)
         if is_valid:
-            # Hide Login, Show Main, Return Key to State, Clear Error Message
             return {
                 login_view: gr.update(visible=False),
                 main_view: gr.update(visible=True),
@@ -204,7 +194,6 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
                 login_msg: ""
             }
         else:
-            # Stay on Login, Show Error
             return {
                 login_view: gr.update(visible=True),
                 main_view: gr.update(visible=False),
@@ -220,7 +209,7 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
 
     generate_btn.click(
         fn=career_coach_logic,
-        inputs=[user_key_state, res_upload, jd_upload], # Pass hidden key for security
+        inputs=[user_key_state, res_upload, jd_upload],
         outputs=[output_box, pdf_download]
     )
 
