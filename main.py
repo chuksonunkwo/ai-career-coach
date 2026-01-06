@@ -5,7 +5,6 @@ import os
 import markdown
 from xhtml2pdf import pisa
 import requests
-import json
 
 # --- 1. CONFIGURATION ---
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -15,41 +14,39 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel("gemini-2.0-flash")
 
-# --- 2. AUTHENTICATION LOGIC (DIAGNOSTIC MODE) ---
+# --- CRITICAL FIX: USING THE SECRET ID ---
+# This matches the ID from your error message: A70XLqybP3M3f6C-euPZzg==
+GUMROAD_PRODUCT_ID = "A70XLqybP3M3f6C-euPZzg=="
+
+# --- 2. AUTHENTICATION LOGIC ---
 def verify_gumroad_key(license_key):
     license_key = str(license_key).strip()
-    
-    # We try BOTH the permalink and a common variation just in case
-    product_permalink = "AI-Career-Architect" 
     
     if not license_key:
         return False, "⚠️ Please enter a license key."
 
-    print(f"🔒 Checking Key: {license_key} against {product_permalink}...")
+    print(f"🔒 Verifying Key against ID: {GUMROAD_PRODUCT_ID}...")
 
     try:
+        # We now use 'product_id' instead of 'product_permalink'
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
             data={
-                "product_permalink": product_permalink,
+                "product_id": GUMROAD_PRODUCT_ID,  # FIXED
                 "license_key": license_key
             },
             timeout=10
         )
         
         data = response.json()
-        print(f"Gumroad Response: {data}") # Prints to server logs
+        print(f"Gumroad Response: {data}")
 
-        # SUCCESS CHECK
         if data.get("success") == True:
             if data["purchase"].get("refunded", False):
                 return False, "❌ Access Denied: Refunded."
             return True, "✅ Success! Access Granted."
-        
-        # FAILURE DIAGNOSIS (This will show on your screen)
         else:
-            error_code = data.get("message", "Unknown Error")
-            return False, f"❌ Gumroad Error: '{error_code}'. (Make sure your Product URL is exactly 'AI-Career-Architect')"
+            return False, "❌ Invalid License Key. (Please check your email receipt)."
             
     except Exception as e:
         return False, f"⚠️ Connection Error: {e}"
@@ -111,7 +108,7 @@ def career_coach_logic(license_key, resume_file, jd_file):
     except Exception as e:
         return f"System Error: {e}", None
 
-# --- 5. THE UI (SAFE MODE - NO CRASHING BUTTONS) ---
+# --- 5. THE UI ---
 LOGO_PATH = "logo.jpg" 
 
 with gr.Blocks(theme=gr.themes.Soft()) as app:
@@ -124,16 +121,15 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
             with gr.Column(scale=1): pass
             with gr.Column(scale=2):
                 
-                # Check for logo, otherwise show text (Safe Mode)
+                # Safe Image Loader
                 if os.path.exists(LOGO_PATH):
                     gr.Image(value=LOGO_PATH, show_label=False, height=200, container=False)
                 else:
-                    gr.Markdown("### ⚠️ Admin: Upload 'logo.jpg' to GitHub")
+                    gr.Markdown("*(Logo missing: Please upload 'logo.jpg' to GitHub)*")
 
                 gr.Markdown("# 🔒 Client Portal Access")
                 gr.Markdown("Please enter your **Gumroad License Key** to proceed.")
                 
-                # SAFE TEXTBOX (Removed incompatible 'show_copy_button')
                 key_input = gr.Textbox(
                     label="License Key", 
                     placeholder="e.g. 14BCC8C0-...", 
