@@ -5,6 +5,7 @@ import os
 import markdown
 from xhtml2pdf import pisa
 import requests
+import json
 
 # --- 1. CONFIGURATION ---
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -14,54 +15,48 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel("gemini-2.0-flash")
 
-# CORRECT PERMALINK: Matches your Gumroad settings exactly
-GUMROAD_PRODUCT_PERMALINK = "AI-Career-Architect"
-
-# --- 2. AUTHENTICATION LOGIC ---
+# --- 2. AUTHENTICATION LOGIC (DIAGNOSTIC MODE) ---
 def verify_gumroad_key(license_key):
-    # 1. Clean the key (remove spaces/newlines)
     license_key = str(license_key).strip()
     
-    # 2. Reject empty keys
+    # We try BOTH the permalink and a common variation just in case
+    product_permalink = "AI-Career-Architect" 
+    
     if not license_key:
         return False, "⚠️ Please enter a license key."
 
-    print(f"🔒 Verifying Key: {license_key}...")
+    print(f"🔒 Checking Key: {license_key} against {product_permalink}...")
 
     try:
-        # 3. Verify with Gumroad API
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
             data={
-                "product_permalink": GUMROAD_PRODUCT_PERMALINK,
+                "product_permalink": product_permalink,
                 "license_key": license_key
             },
             timeout=10
         )
         
-        # 4. Debugging: Print the exact response to logs
         data = response.json()
-        print(f"Gumroad Response: {data}")
+        print(f"Gumroad Response: {data}") # Prints to server logs
 
+        # SUCCESS CHECK
         if data.get("success") == True:
-            # Check for Refunded/Chargeback
             if data["purchase"].get("refunded", False):
-                return False, "❌ Access Denied: This purchase was refunded."
-            
-            # SUCCESS!
+                return False, "❌ Access Denied: Refunded."
             return True, "✅ Success! Access Granted."
+        
+        # FAILURE DIAGNOSIS (This will show on your screen)
         else:
-            # FAILURE
-            return False, "❌ Invalid License Key. Please check the key in your email."
+            error_code = data.get("message", "Unknown Error")
+            return False, f"❌ Gumroad Error: '{error_code}'. (Make sure your Product URL is exactly 'AI-Career-Architect')"
             
     except Exception as e:
-        print(f"Error: {e}")
-        return False, "⚠️ Connection Error. Please try again."
+        return False, f"⚠️ Connection Error: {e}"
 
 # --- 3. PDF GENERATOR ---
 def create_pdf(markdown_content):
     html_content = markdown.markdown(markdown_content)
-    # Simple styling to avoid complex dependency errors
     styled_html = f"<html><body>{html_content}</body></html>"
     output_filename = "Executive_Strategy_Report.pdf"
     with open(output_filename, "wb") as f:
@@ -98,14 +93,12 @@ def career_coach_logic(license_key, resume_file, jd_file):
     ## 🚦 Verdict
     * **Status:** [STRONG/POSSIBLE/WEAK]
     * **Summary:** (2 sentences)
-    
     ## 🚩 Gaps
     * Gap 1...
     
     # ✍️ REWRITE
     ## 💎 Profile
     (Rewrite bio)
-    
     ## 🚀 Experience
     (Top 2 roles rewritten)
     """
@@ -118,30 +111,29 @@ def career_coach_logic(license_key, resume_file, jd_file):
     except Exception as e:
         return f"System Error: {e}", None
 
-# --- 5. THE UI (SAFE MODE) ---
+# --- 5. THE UI (SAFE MODE - NO CRASHING BUTTONS) ---
 LOGO_PATH = "logo.jpg" 
 
 with gr.Blocks(theme=gr.themes.Soft()) as app:
     
     user_key_state = gr.State("")
 
-    # --- VIEW 1: LOGIN ---
     with gr.Column(visible=True) as login_view:
         gr.Markdown("## ")
         with gr.Row():
             with gr.Column(scale=1): pass
             with gr.Column(scale=2):
                 
-                # SAFE IMAGE: Removed 'show_download_button' to fix crash
+                # Check for logo, otherwise show text (Safe Mode)
                 if os.path.exists(LOGO_PATH):
                     gr.Image(value=LOGO_PATH, show_label=False, height=200, container=False)
                 else:
-                    gr.Markdown("*(Logo not found: Please upload 'logo.jpg' to GitHub)*")
+                    gr.Markdown("### ⚠️ Admin: Upload 'logo.jpg' to GitHub")
 
                 gr.Markdown("# 🔒 Client Portal Access")
                 gr.Markdown("Please enter your **Gumroad License Key** to proceed.")
                 
-                # SAFE TEXTBOX: Removed 'show_copy_button' to fix crash
+                # SAFE TEXTBOX (Removed incompatible 'show_copy_button')
                 key_input = gr.Textbox(
                     label="License Key", 
                     placeholder="e.g. 14BCC8C0-...", 
@@ -151,7 +143,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
                 login_msg = gr.Markdown("")
             with gr.Column(scale=1): pass
 
-    # --- VIEW 2: MAIN APP ---
     with gr.Column(visible=False) as main_view:
         with gr.Row():
             if os.path.exists(LOGO_PATH):
@@ -170,7 +161,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
             output_box = gr.Markdown(label="Strategic Analysis")
             pdf_download = gr.File(label="📄 Download Report")
 
-    # --- EVENT WIRING ---
     def attempt_login(key):
         is_valid, msg = verify_gumroad_key(key)
         if is_valid:
@@ -185,7 +175,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as app:
                 login_view: gr.update(visible=True),
                 main_view: gr.update(visible=False),
                 user_key_state: "",
-                login_msg: f"⚠️ {msg}"
+                login_msg: f"{msg}"
             }
 
     login_btn.click(attempt_login, inputs=[key_input], outputs=[login_view, main_view, user_key_state, login_msg])
