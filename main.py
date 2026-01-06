@@ -148,17 +148,17 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
         with gr.Row():
             with gr.Column(scale=1): pass
             with gr.Column(scale=2):
-                # FIXED: Removed 'show_download_button' to fix crash
-                gr.Image(value=LOGO_URL, show_label=False, container=False, height=100)
+                # CLEANED: Removed incompatible arguments
+                gr.Image(value=LOGO_URL, show_label=False, height=100)
                 
                 gr.Markdown("# 🔒 Client Portal Access")
                 gr.Markdown("Please enter your **Gumroad License Key** to proceed.")
                 
+                # CLEANED: Removed 'show_copy_button'
                 key_input = gr.Textbox(
                     label="License Key", 
                     placeholder="e.g. 1234-5678-ABCD-EFGH", 
-                    type="password",
-                    show_copy_button=False
+                    type="password"
                 )
                 login_btn = gr.Button("Unlock Access", variant="primary")
                 login_msg = gr.Markdown("")
@@ -167,8 +167,8 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
     # --- VIEW 2: MAIN APP ---
     with gr.Column(visible=False) as main_view:
         with gr.Row():
-            # FIXED: Removed 'show_download_button' here too
-            gr.Image(value=LOGO_URL, show_label=False, container=False, height=50, scale=0)
+            # CLEANED: Removed incompatible arguments
+            gr.Image(value=LOGO_URL, show_label=False, height=50, scale=0)
             gr.Markdown("# 🏛️ Executive Career Architect")
         
         gr.Markdown("---")
