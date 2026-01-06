@@ -10,7 +10,7 @@ import requests
 # The Brain
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
-    print("⚠️ Warning: GEMINI_API_KEY not found. App may crash.")
+    print("⚠️ SYSTEM ALERT: GEMINI_API_KEY is missing. App will fail to generate content.")
 
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel("gemini-2.0-flash")
@@ -18,65 +18,84 @@ model = genai.GenerativeModel("gemini-2.0-flash")
 # The Gatekeeper (Your Gumroad ID)
 GUMROAD_PRODUCT_ID = "A70XLqybP3M3f6C-euPZzg=="
 
-# --- 2. GUMROAD AUTHENTICATION ENGINE ---
+# --- 2. GUMROAD AUTHENTICATION ENGINE (STRICT MODE) ---
 def verify_license(username, license_key):
     """
-    Verifies the license key against your specific Gumroad product.
+    STRICT VERIFICATION:
+    - No master passwords.
+    - No backdoors.
+    - Only valid Gumroad keys allowed.
     """
-    # Master Key for you (The Admin) to bypass checks
-    if license_key == "admin_master_2026": 
-        return True
+    
+    # 1. Clean the input (remove accidental spaces users copy/paste)
+    license_key = str(license_key).strip()
+    
+    if not license_key:
+        return False
+
+    print(f"🔒 Verifying License: {license_key}...")
 
     try:
-        # We assume the user enters their License Key as the "Password"
-        # The 'username' field is ignored by Gumroad, but required by Gradio's UI.
-        
+        # 2. Ask Gumroad if the key is valid
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
             data={
-                "product_permalink": GUMROAD_PRODUCT_ID, 
+                "product_permalink": GUMROAD_PRODUCT_ID,
                 "license_key": license_key
-            }
+            },
+            timeout=10 # Fail safely if Gumroad is slow
         )
         
+        # 3. Read Gumroad's Answer
         data = response.json()
         
-        # Validation Logic
+        # 4. Strict Logic
         if data.get("success") == True:
-            # Check if refunded or chargebacked
-            if data["purchase"]["refunded"] or data["purchase"]["chargebacked"]:
-                print(f"❌ License {license_key} was refunded.")
+            # Check for Refunds or Chargebacks (Instant Access Revocation)
+            if data["purchase"].get("refunded", False):
+                print("❌ Access Denied: Key was refunded.")
                 return False
-            # If active and not refunded, let them in!
+                
+            if data["purchase"].get("chargebacked", False):
+                print("❌ Access Denied: Key was chargebacked.")
+                return False
+                
+            # If we get here, they are a valid customer.
+            print("✅ Access Granted.")
             return True
-        else:
-            print(f"❌ Verification failed for key: {license_key}")
-            return False
             
+        else:
+            print("❌ Access Denied: Invalid Key.")
+            return False
+
     except Exception as e:
-        print(f"⚠️ Auth Error: {e}")
-        # Fail safe: If Gumroad is down, don't let people in for free.
+        print(f"⚠️ Auth System Error: {e}")
         return False
 
-# --- 3. PDF GENERATOR ---
+# --- 3. PROFESSIONAL PDF GENERATOR ---
 def create_pdf(markdown_content):
     html_content = markdown.markdown(markdown_content)
+    
+    # Corporate Styling (Executive Grade)
     styled_html = f"""
     <html>
     <head>
         <style>
-            @page {{ size: A4; margin: 2cm; }}
-            body {{ font-family: Helvetica, sans-serif; font-size: 11pt; line-height: 1.5; color: #333; }}
-            h1 {{ color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 8px; }}
-            h2 {{ color: #16a085; margin-top: 20px; font-weight: bold; }}
-            strong {{ color: #000; }}
-            .footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 9pt; color: #7f8c8d; border-top: 1px solid #ddd; padding-top: 10px; }}
+            @page {{ size: A4; margin: 2.5cm; }}
+            body {{ font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11pt; line-height: 1.6; color: #333; }}
+            h1 {{ color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; font-size: 18pt; margin-top: 0; }}
+            h2 {{ color: #2980b9; margin-top: 25px; margin-bottom: 10px; font-size: 14pt; font-weight: bold; border-left: 5px solid #eee; padding-left: 10px; }}
+            h3 {{ color: #7f8c8d; font-size: 12pt; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px; }}
+            strong {{ color: #000; font-weight: bold; }}
+            ul {{ margin-bottom: 15px; }}
+            li {{ margin-bottom: 5px; }}
+            .footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 9pt; color: #95a5a6; border-top: 1px solid #bdc3c7; padding-top: 10px; }}
         </style>
     </head>
     <body>
-        <h1>Executive Strategy Report</h1>
+        <h1>Executive Career Strategy Report</h1>
         {html_content}
-        <div class='footer'>Generated by AI Executive Career Architect • Confidential</div>
+        <div class='footer'>Confidential Strategy • Generated by AI Career Architect</div>
     </body>
     </html>
     """
@@ -97,45 +116,49 @@ def extract_pdf_text(filepath):
 
 def career_coach_logic(resume_file, jd_file):
     if not resume_file or not jd_file:
-        return "⚠️ Please upload BOTH files.", None
+        return "⚠️ Please upload BOTH the Resume and Job Description to begin.", None
 
     res_text = extract_pdf_text(resume_file)
     jd_text = extract_pdf_text(jd_file)
 
-    # The Prompt (Your IP)
+    # The "Product Manager" Prompt (Structured for Value)
     prompt = f"""
-    # SYSTEM INSTRUCTIONS: Executive Resume Rewriter
+    # SYSTEM INSTRUCTIONS: Executive Resume Strategist
     
-    ROLE: Executive Career Strategist (Director/VP level).
-    INPUTS: 1) RESUME: {res_text} | 2) JD: {jd_text}
+    ROLE: Elite Executive Career Coach (Director/VP/C-Suite focus).
+    INPUTS: 
+    1) RESUME: {res_text} 
+    2) JD: {jd_text}
+    
+    OBJECTIVE: Produce a ruthless, evidence-based gap analysis and rewrite.
     
     OUTPUT FORMAT (Strict Markdown):
 
-    # 🏁 PART 1: STRATEGIC ANALYSIS
+    # 🏁 PART 1: STRATEGIC FIT (BLUF)
     ## 🚦 The Verdict
-    * **Status:** [STRONG MATCH / POSSIBLE / WEAK]
+    * **Status:** [STRONG MATCH | POSSIBLE | WEAK]
     * **Score:** [0-100]
-    * **Summary:** (2 sentences)
+    * **Executive Summary:** (2 sentences summarizing the 'why')
 
     ## 🚩 Critical Gaps
     * **Gap 1:** ...
     * **Gap 2:** ...
 
     ---
-    # ✍️ PART 2: THE REWRITE
-    ## 💎 Professional Summary
-    (Rewrite bio highlighting UVP)
+    # ✍️ PART 2: THE REWRITE (Actionable)
+    ## 💎 Professional Summary (UVP Aligned)
+    (Rewrite bio to match the JD's pain points)
 
     ## 🛠️ Core Competencies (ATS Grid)
-    (3x3 Grid of Hard Skills found in JD)
+    (3x4 Grid of Hard Skills found in JD | Separated by pipes)
 
-    ## 🚀 Experience (Top 2 Roles)
-    (Rewrite using CAR Framework: Context, Action, Result)
+    ## 🚀 Experience (Top 2 Roles Rewritten)
+    (Rewrite using CAR Framework: Context -> Action -> Result)
 
     ---
-    # ✉️ PART 3: OUTREACH
-    ## 🎯 Email Hook
-    (3-sentence cold email opener)
+    # ✉️ PART 3: THE OUTREACH
+    ## 🎯 Hiring Manager Hook
+    (3-sentence cold email opener connecting a top win to their mission)
     """
     
     try:
@@ -144,31 +167,40 @@ def career_coach_logic(resume_file, jd_file):
         pdf_path = create_pdf(ai_text)
         return ai_text, pdf_path
     except Exception as e:
-        return f"Error: {e}", None
+        return f"System Error: {e}", None
 
-# --- 5. THE UI ---
-with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as app:
+# --- 5. THE PROFESSIONAL UI ---
+with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as app:
+    
+    # Header
     gr.Markdown("# 🏛️ Executive Career Architect")
-    gr.Markdown("🔒 **Secure Login Required.** Please enter your Gumroad License Key.")
+    gr.Markdown("🔒 **Secure Client Portal** | Analysis requires a valid Access Key.")
     
     with gr.Row():
-        res_upload = gr.File(label="1. Executive Resume (PDF)", file_types=[".pdf"])
-        jd_upload = gr.File(label="2. Target Job Description (PDF)", file_types=[".pdf"])
+        with gr.Column():
+            res_upload = gr.File(label="📂 1. Upload Executive Resume (PDF)", file_types=[".pdf"])
+        with gr.Column():
+            jd_upload = gr.File(label="🎯 2. Upload Target Job Description (PDF)", file_types=[".pdf"])
     
-    btn = gr.Button("Generate Strategy & Report", variant="primary", size="lg")
+    # The Action Button
+    btn = gr.Button("✨ Generate Strategy & Rewrite", variant="primary", size="lg")
     
+    # Results Area
     with gr.Row():
-        output_box = gr.Markdown(label="Strategic Analysis")
-        pdf_download = gr.File(label="Download Official Report (PDF)")
+        with gr.Column(scale=2):
+            output_box = gr.Markdown(label="Strategic Analysis")
+        with gr.Column(scale=1):
+            pdf_download = gr.File(label="📄 Download Official Report (PDF)")
     
+    # Logic Connection
     btn.click(fn=career_coach_logic, inputs=[res_upload, jd_upload], outputs=[output_box, pdf_download])
 
-# --- 6. LAUNCH ---
+# --- 6. LAUNCH CONFIG ---
 PORT = int(os.environ.get("PORT", 7860))
 
 app.launch(
     server_name="0.0.0.0", 
     server_port=PORT, 
     auth=verify_license, 
-    auth_message="1. Username: vip\n2. Password: Your Gumroad License Key"
+    auth_message="👋 **Welcome.**\n\nTo access the Executive Architect, please enter:\n\n1. **Username:** vip\n2. **Password:** (Your Gumroad License Key)\n\n*Need a key? Check your receipt.*"
 )
