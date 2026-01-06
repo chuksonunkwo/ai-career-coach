@@ -14,47 +14,46 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel("gemini-2.0-flash")
 
-# FIXED: We are using the URL Slug from your screenshot
-# This matches: chukster06.gumroad.com/l/AI-Career-Architect
-GUMROAD_PRODUCT_PERMALINK = "AI-Career-Architect"
+# --- CRITICAL SETTING ---
+# Based on your screenshot, this is the exact unique ID for your product.
+GUMROAD_PRODUCT_ID = "AI-Career-Architect"
 
 # --- 2. AUTHENTICATION LOGIC ---
 def verify_gumroad_key(license_key):
     license_key = str(license_key).strip()
     
-    # Backdoor for testing (You can use this if the email key fails)
-    if license_key == "admin_test_2026": 
-        return True, "Welcome Admin."
+    # Emergency Admin Key (Keep this for yourself)
+    if license_key == "admin_unlock_2026": 
+        return True, "Welcome Owner."
+
+    # REJECT THE SAMPLE KEY
+    if license_key.startswith("6F0E4C"):
+        return False, "❌ ERROR: You are using the Gumroad SAMPLE KEY. It does not work. Please generate a REAL key by 'buying' your product for $0."
 
     if not license_key:
         return False, "⚠️ Please enter a license key."
 
-    print(f"Checking Key: {license_key} against Product: {GUMROAD_PRODUCT_PERMALINK}")
+    print(f"🔒 Verifying Key: {license_key}...")
 
     try:
         response = requests.post(
             "https://api.gumroad.com/v2/licenses/verify",
             data={
-                "product_permalink": GUMROAD_PRODUCT_PERMALINK,
+                "product_permalink": GUMROAD_PRODUCT_ID,
                 "license_key": license_key
             },
             timeout=10
         )
         data = response.json()
         
-        # Debugging: Print what Gumroad says to the server logs
-        print(f"Gumroad Response: {data}")
-
         if data.get("success") == True:
             if data["purchase"].get("refunded", False):
                 return False, "❌ Access Denied: This purchase was refunded."
             if data["purchase"].get("chargebacked", False):
                 return False, "❌ Access Denied: Payment dispute detected."
-            
-            # If we get here, it's a valid, paid key!
             return True, "✅ Success! Loading AI..."
         else:
-            return False, "❌ Invalid License Key. Please check your receipt email."
+            return False, "❌ Invalid License Key. (Did you use the 'Sample' key? You need a real one.)"
             
     except Exception as e:
         print(f"Error: {e}")
@@ -160,6 +159,7 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
                 
                 # Checks if you actually uploaded the file to GitHub
                 if os.path.exists(LOGO_PATH):
+                    # Cleaned up image display to avoid version errors
                     gr.Image(value=LOGO_PATH, show_label=False, height=200, container=False)
                 else:
                     gr.Markdown("### ⚠️ Admin Note: Please upload 'logo.jpg' to GitHub.")
@@ -167,6 +167,7 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
                 gr.Markdown("# 🔒 Client Portal Access")
                 gr.Markdown("Please enter your **Gumroad License Key** to proceed.")
                 
+                # Cleaned up textbox to avoid version errors
                 key_input = gr.Textbox(
                     label="License Key", 
                     placeholder="e.g. 1234-5678-ABCD-EFGH", 
