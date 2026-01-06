@@ -1,3 +1,5 @@
 gradio
 google-generativeai
 pypdf
+markdown
+xhtml2pdf
