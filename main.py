@@ -135,7 +135,8 @@ def career_coach_logic(license_key, resume_file, jd_file):
         return f"System Error: {e}", None
 
 # --- 5. THE UI (CUSTOM LOGIN FLOW) ---
-LOGO_URL = "https://cdn-icons-png.flaticon.com/512/3135/3135805.png" 
+# We use the local file. Make sure you upload 'logo.jpg' to GitHub!
+LOGO_PATH = "logo.jpg" 
 
 with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as app:
     
@@ -148,9 +149,13 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
         with gr.Row():
             with gr.Column(scale=1): pass
             with gr.Column(scale=2):
-                # CLEANED: Removed incompatible arguments
-                gr.Image(value=LOGO_URL, show_label=False, height=100)
-                
+                # CLEANED: Removed 'show_download_button' etc.
+                # If logo.jpg is missing, this box will just be empty (won't crash)
+                if os.path.exists(LOGO_PATH):
+                    gr.Image(value=LOGO_PATH, show_label=False, height=200)
+                else:
+                    gr.Markdown("*(Logo not found: Please upload logo.jpg to GitHub)*")
+
                 gr.Markdown("# 🔒 Client Portal Access")
                 gr.Markdown("Please enter your **Gumroad License Key** to proceed.")
                 
@@ -167,9 +172,9 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate", radius_size="none")) as
     # --- VIEW 2: MAIN APP ---
     with gr.Column(visible=False) as main_view:
         with gr.Row():
-            # CLEANED: Removed incompatible arguments
-            gr.Image(value=LOGO_URL, show_label=False, height=50, scale=0)
-            gr.Markdown("# 🏛️ Executive Career Architect")
+            if os.path.exists(LOGO_PATH):
+                gr.Image(value=LOGO_PATH, show_label=False, height=50, scale=0)
+            gr.Markdown("# 🏛️ AI Career Architect")
         
         gr.Markdown("---")
         
