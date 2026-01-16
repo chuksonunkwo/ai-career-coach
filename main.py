@@ -14,7 +14,7 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel("gemini-2.0-flash")
 
-# CRITICAL: Your Exact Product ID (Do not change this)
+# CRITICAL: Your Exact Product ID
 GUMROAD_PRODUCT_ID = "A70XLqybP3M3f6C-euPZzg=="
 
 # --- 2. AUTHENTICATION (BUSINESS LOGIC) ---
@@ -87,7 +87,7 @@ def create_pdf(markdown_content):
         pisa.CreatePDF(styled_html, dest=f)
     return output_filename
 
-# --- 4. AI CORE INTELLIGENCE (THE UPGRADE) ---
+# --- 4. AI CORE INTELLIGENCE (UNLOCKED VERSION) ---
 def extract_pdf_text(filepath):
     if not filepath: return ""
     try:
@@ -111,10 +111,10 @@ def career_coach_logic(license_key, resume_file, jd_file):
     res_text = extract_pdf_text(resume_file)
     jd_text = extract_pdf_text(jd_file)
 
-    # --- THE UPDATED "HIGH GRADE" PROMPT ---
+    # --- THE UPDATED "FULL REWRITE" PROMPT ---
     prompt = f"""
     ROLE: You are an elite Executive Career Strategist.
-    TASK: Perform a ruthless gap analysis and then completely REWRITE the candidate's profile to match the target role.
+    TASK: Perform a ruthless gap analysis and then REWRITE THE ENTIRE RESUME content to match the target role.
     
     INPUTS: 
     - CANDIDATE RESUME: {res_text} 
@@ -124,6 +124,7 @@ def career_coach_logic(license_key, resume_file, jd_file):
     - Tone: Executive, authoritative, and metric-driven.
     - Format: Strict Markdown.
     - Constraint: Do not invent facts. If a metric is missing, focus on the scope/responsibility.
+    - **CRITICAL:** Do not stop halfway. Rewrite every section including all roles, education, and certifications.
     
     OUTPUT STRUCTURE:
     
@@ -131,21 +132,21 @@ def career_coach_logic(license_key, resume_file, jd_file):
     ## 🚦 The Verdict
     * **Status:** [STRONG MATCH / POSSIBLE / WEAK]
     * **Fit Score:** [0-100]
-    * **Executive Summary:** (2 sentences. Be direct. e.g., "Candidate is a strong technical match but lacks the specific 'Local Content' experience required in Brazil.")
+    * **Executive Summary:** (2 sentences. Be direct.)
     
     ## 🚩 Critical Gaps & Risks
     * (Identify 3 specific skills or experiences found in the JD that are weak or missing in the Resume)
     
     ---
     
-    # ✍️ PART 2: THE EXECUTIVE REWRITE
-    *(Instruction: Rewrite the top 1/3rd of the resume to perfectly align with the JD)*
+    # ✍️ PART 2: THE FULL EXECUTIVE REWRITE
+    *(Instruction: Rewrite the ENTIRE document below. Do not summarize.)*
     
     ## 👤 Proposed Headline
-    *(Create a new, specific Job Title for the resume that matches the JD. e.g., "Senior Projects & Field Operations Lead")*
+    *(Create a new, specific Job Title for the resume that matches the JD)*
     
     ## 💎 Professional Summary (Optimized)
-    *(Rewrite the bio. Front-load the JD's keywords. Mention years of experience, specific industries, and key achievements immediately. 4-5 lines max.)*
+    *(Rewrite the bio. Front-load the JD's keywords. Mention years of experience and key achievements. 4-5 lines max.)*
     
     ## 🛠️ Core Competencies (ATS Grid)
     *(Create a 3x3 table of the TOP hard skills found in the JD that the candidate possesses)*
@@ -154,19 +155,27 @@ def career_coach_logic(license_key, resume_file, jd_file):
     | (Skill) | (Skill) | (Skill) |
     | (Skill) | (Skill) | (Skill) |
     
-    ## 🚀 Experience (Top 2 Roles Rewritten)
-    *(Rewrite the 2 most recent or relevant roles. Use the 'Context-Action-Result' format. Bold the metrics.)*
+    ## 🚀 Professional Experience (Full Rewrite)
+    *(Rewrite ALL roles found in the resume. Start with the most recent. Use the 'Context-Action-Result' format.)*
     
     **[Role Title]** | *[Company]* | *[Dates]*
-    * **[Key Outcome/Metric]:** [Description of action]. (e.g., "Led cost optimization drive saving **$4M USD** by...")
+    * **[Key Outcome/Metric]:** [Description of action].
     * **[JD Keyword]:** [Description of action].
     * **[Leadership/Scope]:** [Description of action].
+    
+    *(Repeat for ALL roles in the candidate's history)*
+    
+    ## 🎓 Education
+    *(List degrees)*
+    
+    ## 📜 Certifications & Training
+    *(List relevant certifications)*
     
     ---
     
     # ✉️ PART 3: OUTREACH STRATEGY
     ## 🎯 The "Hook" (Email Opener)
-    *(Write a 3-sentence opening paragraph for a cover letter or LinkedIn DM. Address the Hiring Manager. Acknowledge the specific pain points in the JD and how the candidate solves them immediately.)*
+    *(Write a 3-sentence opening paragraph for a cover letter. Address the Hiring Manager.)*
     """
     
     try:
