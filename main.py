@@ -14,7 +14,7 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel("gemini-2.0-flash")
 
-# CRITICAL: This is the exact ID Gumroad requires for your specific product
+# CRITICAL: Your Exact Product ID (Do not change this)
 GUMROAD_PRODUCT_ID = "A70XLqybP3M3f6C-euPZzg=="
 
 # --- 2. AUTHENTICATION (BUSINESS LOGIC) ---
@@ -38,9 +38,7 @@ def verify_gumroad_key(license_key):
         
         data = response.json()
         
-        # Check if successful
         if data.get("success") == True:
-            # Check for Refunds or Chargebacks
             if data["purchase"].get("refunded", False):
                 return False, "❌ Access Denied: This purchase has been refunded."
             if data["purchase"].get("chargebacked", False):
@@ -56,10 +54,9 @@ def verify_gumroad_key(license_key):
 
 # --- 3. REPORT GENERATOR (PDF) ---
 def create_pdf(markdown_content):
-    # Convert Markdown to HTML
     html_body = markdown.markdown(markdown_content)
     
-    # Add Professional Styling
+    # Professional Styling for Executive Reports
     styled_html = f"""
     <html>
     <head>
@@ -71,6 +68,9 @@ def create_pdf(markdown_content):
             h3 {{ color: #7f8c8d; font-size: 12pt; text-transform: uppercase; margin-top: 20px; }}
             strong {{ color: #000; font-weight: bold; }}
             li {{ margin-bottom: 5px; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 15px; }}
+            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+            th {{ background-color: #f2f2f2; color: #333; }}
             .footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 9pt; color: #aaa; border-top: 1px solid #ddd; padding-top: 10px; }}
         </style>
     </head>
@@ -87,7 +87,7 @@ def create_pdf(markdown_content):
         pisa.CreatePDF(styled_html, dest=f)
     return output_filename
 
-# --- 4. AI CORE INTELLIGENCE ---
+# --- 4. AI CORE INTELLIGENCE (THE UPGRADE) ---
 def extract_pdf_text(filepath):
     if not filepath: return ""
     try:
@@ -111,50 +111,62 @@ def career_coach_logic(license_key, resume_file, jd_file):
     res_text = extract_pdf_text(resume_file)
     jd_text = extract_pdf_text(jd_file)
 
+    # --- THE UPDATED "HIGH GRADE" PROMPT ---
     prompt = f"""
-    ROLE: You are an Executive Career Strategist (Human Capital Expert).
-    TASK: Analyze the Candidate's Resume against the Target Job Description (JD).
-    INPUTS: 
-    - RESUME: {res_text} 
-    - JD: {jd_text}
+    ROLE: You are an elite Executive Career Strategist.
+    TASK: Perform a ruthless gap analysis and then completely REWRITE the candidate's profile to match the target role.
     
-    OUTPUT FORMAT: Strict Markdown.
+    INPUTS: 
+    - CANDIDATE RESUME: {res_text} 
+    - TARGET JOB DESCRIPTION (JD): {jd_text}
+    
+    GUIDELINES:
+    - Tone: Executive, authoritative, and metric-driven.
+    - Format: Strict Markdown.
+    - Constraint: Do not invent facts. If a metric is missing, focus on the scope/responsibility.
+    
+    OUTPUT STRUCTURE:
     
     # 🏁 PART 1: STRATEGIC FIT ANALYSIS
     ## 🚦 The Verdict
     * **Status:** [STRONG MATCH / POSSIBLE / WEAK]
     * **Fit Score:** [0-100]
-    * **Executive Summary:** (2 sentences regarding the decision)
+    * **Executive Summary:** (2 sentences. Be direct. e.g., "Candidate is a strong technical match but lacks the specific 'Local Content' experience required in Brazil.")
     
     ## 🚩 Critical Gaps & Risks
-    * (Bullet point 1)
-    * (Bullet point 2)
-    * (Bullet point 3)
+    * (Identify 3 specific skills or experiences found in the JD that are weak or missing in the Resume)
     
     ---
     
-    # ✍️ PART 2: THE REWRITE
-    ## 💎 Professional Summary (Optimized)
-    (Write a compelling, metric-heavy bio)
+    # ✍️ PART 2: THE EXECUTIVE REWRITE
+    *(Instruction: Rewrite the top 1/3rd of the resume to perfectly align with the JD)*
     
-    ## 🛠️ Core Competencies (ATS Keywords)
-    (Provide a 3x4 grid of skills present in the JD that the candidate possesses)
+    ## 👤 Proposed Headline
+    *(Create a new, specific Job Title for the resume that matches the JD. e.g., "Senior Projects & Field Operations Lead")*
+    
+    ## 💎 Professional Summary (Optimized)
+    *(Rewrite the bio. Front-load the JD's keywords. Mention years of experience, specific industries, and key achievements immediately. 4-5 lines max.)*
+    
+    ## 🛠️ Core Competencies (ATS Grid)
+    *(Create a 3x3 table of the TOP hard skills found in the JD that the candidate possesses)*
+    | Category 1 | Category 2 | Category 3 |
+    | :--- | :--- | :--- |
+    | (Skill) | (Skill) | (Skill) |
+    | (Skill) | (Skill) | (Skill) |
     
     ## 🚀 Experience (Top 2 Roles Rewritten)
-    **(Latest Role Title)**
-    * (Action Verb) + (Context) + (Result/Metric)
-    * (Action Verb) + (Context) + (Result/Metric)
-    * (Action Verb) + (Context) + (Result/Metric)
+    *(Rewrite the 2 most recent or relevant roles. Use the 'Context-Action-Result' format. Bold the metrics.)*
     
-    **(Previous Role Title)**
-    * (Action Verb) + (Context) + (Result/Metric)
-    * (Action Verb) + (Context) + (Result/Metric)
+    **[Role Title]** | *[Company]* | *[Dates]*
+    * **[Key Outcome/Metric]:** [Description of action]. (e.g., "Led cost optimization drive saving **$4M USD** by...")
+    * **[JD Keyword]:** [Description of action].
+    * **[Leadership/Scope]:** [Description of action].
     
     ---
     
-    # ✉️ PART 3: OUTREACH
-    ## 🎯 Recruiter Hook (Email Opener)
-    (A 3-sentence powerful opening paragraph for a cover letter or LinkedIn message)
+    # ✉️ PART 3: OUTREACH STRATEGY
+    ## 🎯 The "Hook" (Email Opener)
+    *(Write a 3-sentence opening paragraph for a cover letter or LinkedIn DM. Address the Hiring Manager. Acknowledge the specific pain points in the JD and how the candidate solves them immediately.)*
     """
     
     try:
@@ -168,7 +180,6 @@ def career_coach_logic(license_key, resume_file, jd_file):
 # --- 5. UI CONSTRUCTION ---
 LOGO_PATH = "logo.jpg" 
 
-# LEGAL TEXT (From your request)
 LEGAL_TEXT = """
 ### Privacy Policy & Legal Disclaimer
 **Effective Date:** January 2026 | **Seller:** Jicu Limited
@@ -193,7 +204,6 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as app:
             with gr.Column(scale=1): pass
             with gr.Column(scale=2):
                 
-                # Dynamic Logo Handler (Prevents crashes if file is missing)
                 if os.path.exists(LOGO_PATH):
                     gr.Image(value=LOGO_PATH, show_label=False, height=180, container=False)
                 else:
@@ -214,13 +224,11 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as app:
     # === VIEW 2: MAIN APPLICATION ===
     with gr.Column(visible=False) as main_view:
         
-        # Header
         with gr.Row():
             if os.path.exists(LOGO_PATH):
                 gr.Image(value=LOGO_PATH, show_label=False, height=60, scale=0, container=False)
             gr.Markdown("# 🏛️ AI Career Architect")
         
-        # Tabs for functionality
         with gr.Tabs():
             
             # TAB 1: STRATEGY TOOL
@@ -244,7 +252,6 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as app:
     def attempt_login(key):
         is_valid, msg = verify_gumroad_key(key)
         if is_valid:
-            # Login Success: Hide login, Show Main
             return {
                 login_view: gr.update(visible=False),
                 main_view: gr.update(visible=True),
@@ -252,7 +259,6 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as app:
                 login_msg: ""
             }
         else:
-            # Login Fail: Stay, Show Error
             return {
                 login_view: gr.update(visible=True),
                 main_view: gr.update(visible=False),
@@ -260,17 +266,8 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as app:
                 login_msg: f"⚠️ {msg}"
             }
 
-    login_btn.click(
-        attempt_login, 
-        inputs=[key_input], 
-        outputs=[login_view, main_view, user_key_state, login_msg]
-    )
-
-    generate_btn.click(
-        career_coach_logic, 
-        inputs=[user_key_state, res_upload, jd_upload], 
-        outputs=[output_box, pdf_download]
-    )
+    login_btn.click(attempt_login, inputs=[key_input], outputs=[login_view, main_view, user_key_state, login_msg])
+    generate_btn.click(career_coach_logic, inputs=[user_key_state, res_upload, jd_upload], outputs=[output_box, pdf_download])
 
 # --- LAUNCH SERVER ---
 PORT = int(os.environ.get("PORT", 7860))
