@@ -13,6 +13,7 @@ if not api_key:
     print("⚠️ SYSTEM ALERT: GEMINI_API_KEY is missing in Render Environment Variables.")
 
 genai.configure(api_key=api_key)
+# Using 2.0 Flash for speed and vision capabilities
 model = genai.GenerativeModel("gemini-2.0-flash")
 
 # CRITICAL: Your Exact Product ID
@@ -88,7 +89,7 @@ def create_pdf(markdown_content):
         pisa.CreatePDF(styled_html, dest=f)
     return output_filename
 
-# --- 4. AI CORE INTELLIGENCE (VISION + HIGH VOLUME PROMPT) ---
+# --- 4. AI CORE INTELLIGENCE (VISION + SCORING + HIGH VOLUME) ---
 def career_coach_logic(license_key, resume_file, jd_file):
     # 1. Security Check
     is_valid, msg = verify_gumroad_key(license_key)
@@ -127,6 +128,8 @@ def career_coach_logic(license_key, resume_file, jd_file):
         ## 🚦 Status & Score
         * **Status:** [STRONG MATCH / POSSIBLE / WEAK]
         * **Fit Score:** [0-100]
+        *(Instruction for Score: Calculate strictly based on: Title Match (20pts) + Hard Skills (30pts) + Experience Years (20pts) + Industry Match (15pts) + Soft Skills (15pts). Do not default to 85. Be precise.)*
+        
         * **Top Drivers:** (3 key strengths driving this score)
         * **Critical Gaps:** (3 key missing elements to address)
         
@@ -148,7 +151,7 @@ def career_coach_logic(license_key, resume_file, jd_file):
         *(4-5 lines. Front-load the JD keywords and years of experience.)*
         
         ## ⭐ Executive Bullet Upgrades (Full Experience)
-        *(Instruction: Rewrite ALL roles. For the 3 most recent roles, you MUST provide 5-7 bullet points each to capture full depth. Do not summarize. Use the formula: Action + Scope + Outcome.)*
+        *(Instruction: Rewrite ALL roles found in the resume. For the 3 most recent roles, you MUST provide 5-7 bullet points each to capture full depth. Do not summarize. Use the formula: Action + Scope + Outcome.)*
         
         **[Role Title]** | *[Company]* | *[Dates]*
         * **[Outcome/Metric]:** [Action + Scope].
