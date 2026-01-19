@@ -1,6 +1,5 @@
 import gradio as gr
 import google.generativeai as genai
-from pypdf import PdfReader
 import os
 import markdown
 from xhtml2pdf import pisa
@@ -87,15 +86,8 @@ def create_pdf(markdown_content):
         pisa.CreatePDF(styled_html, dest=f)
     return output_filename
 
-# --- 4. AI CORE INTELLIGENCE (MATCHING YOUR MARKETING PROMISES) ---
-def extract_pdf_text(filepath):
-    if not filepath: return ""
-    try:
-        reader = PdfReader(filepath)
-        text = ""
-        for page in reader.pages: text += page.extract_text() + "\n"
-        return text
-    except Exception as e: return f"Error reading PDF: {str(e)}"
+# --- 4. AI CORE INTELLIGENCE (VISION UPGRADE) ---
+# Note: extract_pdf_text is removed because we are sending the files directly to Gemini.
 
 def career_coach_logic(license_key, resume_file, jd_file):
     # 1. Security Check
@@ -107,77 +99,88 @@ def career_coach_logic(license_key, resume_file, jd_file):
     if not resume_file or not jd_file:
         return "⚠️ Missing Files: Please upload BOTH your Resume and the Job Description.", None
 
-    # 3. Processing
-    res_text = extract_pdf_text(resume_file)
-    jd_text = extract_pdf_text(jd_file)
-
-    # --- THE "MARKETING-ALIGNED" PROMPT ---
-    prompt = f"""
-    ROLE: You are an elite Executive Career Strategist.
-    TASK: Perform a deep alignment analysis and REWRITE the candidate's profile to match the target role.
-    
-    INPUTS: 
-    - CANDIDATE RESUME: {res_text} 
-    - TARGET JOB DESCRIPTION (JD): {jd_text}
-    
-    GUIDELINES:
-    - Tone: Executive, authoritative, and outcome-driven (Action + Scope + Outcome).
-    - Format: Strict Markdown.
-    - Constraint: Do not invent facts. If a metric is missing, use placeholders like [BUDGET] or [TEAM SIZE].
-    - **CRITICAL:** Rewrite the ENTIRE resume (Experience, Education, Certifications).
-    
-    OUTPUT STRUCTURE:
-    
-    # 📊 EXECUTIVE BLUF FIT REPORT
-    ## 🚦 Status & Score
-    * **Status:** [STRONG MATCH / POSSIBLE / WEAK]
-    * **Fit Score:** [0-100]
-    * **Top Drivers:** (3 key strengths driving this score)
-    * **Critical Gaps:** (3 key missing elements to address)
-    
-    ## 🎯 Alignment Matrix
-    *(Create a table mapping JD Requirements to Candidate Evidence)*
-    | JD Requirement | Your Evidence | Strength/Gap |
-    | :--- | :--- | :--- |
-    | (Requirement A) | (Evidence A) | (Strength) |
-    | (Requirement B) | (Evidence B) | (Gap - Advice) |
-    
-    ---
-    
-    # ✍️ EXECUTIVE CV REWRITE (ATS-Friendly)
-    
-    ## 👤 Proposed Headline
-    *(A specific Job Title matching the JD)*
-    
-    ## 💎 Professional Summary (Optimized)
-    *(4-5 lines. Front-load the JD keywords and years of experience.)*
-    
-    ## ⭐ Executive Bullet Upgrades (Full Experience)
-    *(Rewrite ALL roles. Use the formula: Action + Scope + Outcome. Bold the metrics.)*
-    
-    **[Role Title]** | *[Company]* | *[Dates]*
-    * **[Outcome/Metric]:** [Action + Scope].
-    * **[Outcome/Metric]:** [Action + Scope].
-    * **[Outcome/Metric]:** [Action + Scope].
-    *(Repeat for all roles)*
-    
-    ## 🎓 Education & Certifications
-    *(List degrees and certs)*
-    
-    ---
-    
-    # ✉️ PERSONALIZED COVER LETTER
-    *(A 300-word executive letter based on proof points)*
-    
-    # 🎣 RECRUITER HOOK
-    *(A 3-sentence email opener for LinkedIn outreach)*
-    """
-    
     try:
-        response = model.generate_content(prompt)
+        # 3. Upload Files Directly to Gemini (THE FIX)
+        # This fixes the "Table Blindness" by letting AI see the layout.
+        print("📤 Uploading files to Gemini...")
+        resume_gemini = genai.upload_file(resume_file, mime_type="application/pdf")
+        jd_gemini = genai.upload_file(jd_file, mime_type="application/pdf")
+
+        # 4. The Marketing-Aligned Prompt
+        prompt = """
+        ROLE: You are an elite Executive Career Strategist.
+        TASK: Perform a deep alignment analysis and REWRITE the candidate's profile to match the target role.
+        
+        INPUTS: 
+        - The first attached document is the CANDIDATE RESUME.
+        - The second attached document is the TARGET JOB DESCRIPTION (JD).
+        
+        GUIDELINES:
+        - Tone: Executive, authoritative, and outcome-driven (Action + Scope + Outcome).
+        - Format: Strict Markdown.
+        - Constraint: Do not invent facts. If a metric is missing, use placeholders like [BUDGET] or [TEAM SIZE].
+        - **CRITICAL:** Rewrite the ENTIRE resume (Experience, Education, Certifications).
+        
+        OUTPUT STRUCTURE:
+        
+        # 📊 EXECUTIVE BLUF FIT REPORT
+        ## 🚦 Status & Score
+        * **Status:** [STRONG MATCH / POSSIBLE / WEAK]
+        * **Fit Score:** [0-100]
+        * **Top Drivers:** (3 key strengths driving this score)
+        * **Critical Gaps:** (3 key missing elements to address)
+        
+        ## 🎯 Alignment Matrix
+        *(Create a table mapping JD Requirements to Candidate Evidence)*
+        | JD Requirement | Your Evidence | Strength/Gap |
+        | :--- | :--- | :--- |
+        | (Requirement A) | (Evidence A) | (Strength) |
+        | (Requirement B) | (Evidence B) | (Gap - Advice) |
+        
+        ---
+        
+        # ✍️ EXECUTIVE CV REWRITE (ATS-Friendly)
+        
+        ## 👤 Proposed Headline
+        *(A specific Job Title matching the JD)*
+        
+        ## 💎 Professional Summary (Optimized)
+        *(4-5 lines. Front-load the JD keywords and years of experience.)*
+        
+        ## ⭐ Executive Bullet Upgrades (Full Experience)
+        *(Rewrite ALL roles found in the resume. Use the formula: Action + Scope + Outcome. Bold the metrics.)*
+        
+        **[Role Title]** | *[Company]* | *[Dates]*
+        * **[Outcome/Metric]:** [Action + Scope].
+        * **[Outcome/Metric]:** [Action + Scope].
+        * **[Outcome/Metric]:** [Action + Scope].
+        *(Repeat for all roles)*
+        
+        ## 🎓 Education & Certifications
+        *(List degrees and certs)*
+        
+        ---
+        
+        # ✉️ PERSONALIZED COVER LETTER
+        *(A 300-word executive letter based on proof points)*
+        
+        # 🎣 RECRUITER HOOK
+        *(A 3-sentence email opener for LinkedIn outreach)*
+        """
+        
+        # 5. Generate Content with Vision
+        # We increase temperature slightly to 0.4 for better writing flow
+        generation_config = genai.types.GenerationConfig(temperature=0.4)
+        
+        response = model.generate_content(
+            [prompt, resume_gemini, jd_gemini],
+            generation_config=generation_config
+        )
+        
         ai_text = response.text
         pdf_path = create_pdf(ai_text)
         return ai_text, pdf_path
+
     except Exception as e:
         return f"System Error: {e}", None
 
