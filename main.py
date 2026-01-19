@@ -123,7 +123,7 @@ def career_coach_logic(license_key, resume_file, jd_file):
         
         OUTPUT STRUCTURE:
         
-        # 📊 EXECUTIVE BLUF FIT REPORT
+        # 📊 EXECUTIVE FIT REPORT
         ## 🚦 Status & Score
         * **Status:** [STRONG MATCH / POSSIBLE / WEAK]
         * **Fit Score:** [0-100]
