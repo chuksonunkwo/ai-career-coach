@@ -4,6 +4,8 @@ import os
 import markdown
 from xhtml2pdf import pisa
 import requests
+# We keep pypdf imported just in case, though the Vision logic below handles files directly.
+from pypdf import PdfReader 
 
 # --- 1. CONFIGURATION ---
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -86,9 +88,7 @@ def create_pdf(markdown_content):
         pisa.CreatePDF(styled_html, dest=f)
     return output_filename
 
-# --- 4. AI CORE INTELLIGENCE (VISION UPGRADE) ---
-# Note: extract_pdf_text is removed because we are sending the files directly to Gemini.
-
+# --- 4. AI CORE INTELLIGENCE (VISION + HIGH VOLUME PROMPT) ---
 def career_coach_logic(license_key, resume_file, jd_file):
     # 1. Security Check
     is_valid, msg = verify_gumroad_key(license_key)
@@ -100,13 +100,13 @@ def career_coach_logic(license_key, resume_file, jd_file):
         return "⚠️ Missing Files: Please upload BOTH your Resume and the Job Description.", None
 
     try:
-        # 3. Upload Files Directly to Gemini (THE FIX)
-        # This fixes the "Table Blindness" by letting AI see the layout.
+        # 3. Upload Files Directly to Gemini (VISION)
+        # This fixes the "Table Blindness" by letting AI see the layout directly.
         print("📤 Uploading files to Gemini...")
         resume_gemini = genai.upload_file(resume_file, mime_type="application/pdf")
         jd_gemini = genai.upload_file(jd_file, mime_type="application/pdf")
 
-        # 4. The Marketing-Aligned Prompt
+        # 4. The Marketing-Aligned "High-Volume" Prompt
         prompt = """
         ROLE: You are an elite Executive Career Strategist.
         TASK: Perform a deep alignment analysis and REWRITE the candidate's profile to match the target role.
@@ -119,7 +119,7 @@ def career_coach_logic(license_key, resume_file, jd_file):
         - Tone: Executive, authoritative, and outcome-driven (Action + Scope + Outcome).
         - Format: Strict Markdown.
         - Constraint: Do not invent facts. If a metric is missing, use placeholders like [BUDGET] or [TEAM SIZE].
-        - **CRITICAL:** Rewrite the ENTIRE resume (Experience, Education, Certifications).
+        - **CRITICAL:** Rewrite the ENTIRE resume. Do not summarize.
         
         OUTPUT STRUCTURE:
         
@@ -148,9 +148,11 @@ def career_coach_logic(license_key, resume_file, jd_file):
         *(4-5 lines. Front-load the JD keywords and years of experience.)*
         
         ## ⭐ Executive Bullet Upgrades (Full Experience)
-        *(Rewrite ALL roles found in the resume. Use the formula: Action + Scope + Outcome. Bold the metrics.)*
+        *(Instruction: Rewrite ALL roles. For the 3 most recent roles, you MUST provide 5-7 bullet points each to capture full depth. Do not summarize. Use the formula: Action + Scope + Outcome.)*
         
         **[Role Title]** | *[Company]* | *[Dates]*
+        * **[Outcome/Metric]:** [Action + Scope].
+        * **[Outcome/Metric]:** [Action + Scope].
         * **[Outcome/Metric]:** [Action + Scope].
         * **[Outcome/Metric]:** [Action + Scope].
         * **[Outcome/Metric]:** [Action + Scope].
