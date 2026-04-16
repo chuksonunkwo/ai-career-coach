@@ -1,25 +1,31 @@
-import gradio as gr
-import google.generativeai as genai
 import os
-import markdown
-from xhtml2pdf import pisa
 import requests
-# We keep pypdf imported just in case, though the Vision logic below handles files directly.
-from pypdf import PdfReader 
+import markdown
+import google.generativeai as genai
+import gradio as gr
+from fastapi import FastAPI
+from xhtml2pdf import pisa
 
 # --- 1. CONFIGURATION ---
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
-    print("⚠️ SYSTEM ALERT: GEMINI_API_KEY is missing in Render Environment Variables.")
+    print("⚠️ SYSTEM ALERT: GEMINI_API_KEY is missing in Environment Variables.")
 
 genai.configure(api_key=api_key)
-# Using 2.0 Flash for speed and vision capabilities
 model = genai.GenerativeModel("gemini-2.0-flash")
 
 # CRITICAL: Your Exact Product ID
 GUMROAD_PRODUCT_ID = "A70XLqybP3M3f6C-euPZzg=="
 
-# --- 2. AUTHENTICATION (BUSINESS LOGIC) ---
+# --- 2. FASTAPI HEALTH CHECK (For Render Stability) ---
+app = FastAPI()
+
+@app.get("/health")
+def health_check():
+    # Render uses this to ensure zero-downtime updates
+    return {"status": "healthy", "message": "API is running"}
+
+# --- 3. AUTHENTICATION (BUSINESS LOGIC) ---
 def verify_gumroad_key(license_key):
     license_key = str(license_key).strip()
     
@@ -54,11 +60,10 @@ def verify_gumroad_key(license_key):
         print(f"Connection Error: {e}")
         return False, "⚠️ Connection Error. Please try again."
 
-# --- 3. REPORT GENERATOR (PDF) ---
+# --- 4. REPORT GENERATOR (PDF) ---
 def create_pdf(markdown_content):
     html_body = markdown.markdown(markdown_content)
     
-    # Professional Styling matching your "Executive" Brand
     styled_html = f"""
     <html>
     <head>
@@ -89,25 +94,20 @@ def create_pdf(markdown_content):
         pisa.CreatePDF(styled_html, dest=f)
     return output_filename
 
-# --- 4. AI CORE INTELLIGENCE (VISION + SCORING + HIGH VOLUME) ---
+# --- 5. AI CORE INTELLIGENCE (VISION + ZERO TRUST) ---
 def career_coach_logic(license_key, resume_file, jd_file):
-    # 1. Security Check
     is_valid, msg = verify_gumroad_key(license_key)
     if not is_valid:
         return f"🔒 SECURITY ALERT: {msg}", None
 
-    # 2. File Check
     if not resume_file or not jd_file:
         return "⚠️ Missing Files: Please upload BOTH your Resume and the Job Description.", None
 
     try:
-        # 3. Upload Files Directly to Gemini (VISION)
-        # This fixes the "Table Blindness" by letting AI see the layout directly.
         print("📤 Uploading files to Gemini...")
-        resume_gemini = genai.upload_file(resume_file, mime_type="application/pdf")
-        jd_gemini = genai.upload_file(jd_file, mime_type="application/pdf")
+        resume_gemini = genai.upload_file(resume_file.name, mime_type="application/pdf")
+        jd_gemini = genai.upload_file(jd_file.name, mime_type="application/pdf")
 
-        # 4. The Marketing-Aligned "High-Volume" Prompt
         prompt = """
         ROLE: You are an elite Executive Career Strategist.
         TASK: Perform a deep alignment analysis and REWRITE the candidate's profile to match the target role.
@@ -116,29 +116,27 @@ def career_coach_logic(license_key, resume_file, jd_file):
         - The first attached document is the CANDIDATE RESUME.
         - The second attached document is the TARGET JOB DESCRIPTION (JD).
         
-        GUIDELINES:
-        - Tone: Executive, authoritative, and outcome-driven (Action + Scope + Outcome).
-        - Format: Strict Markdown.
-        - Constraint: Do not invent facts. If a metric is missing, use placeholders like [BUDGET] or [TEAM SIZE].
-        - **CRITICAL:** Rewrite the ENTIRE resume. Do not summarize.
+        ZERO TRUST GUIDELINES (CRITICAL):
+        - Do not invent facts. You must strictly base all claims on the provided texts.
+        - In the 'Alignment Matrix', for every Strength or Gap identified, you MUST provide an exact, word-for-word quote from the Resume or JD to prove where you sourced the information. 
+        - If a metric is missing from the resume, use placeholders like [BUDGET] or [TEAM SIZE].
         
-        OUTPUT STRUCTURE:
+        OUTPUT STRUCTURE (Strict Markdown):
         
         # 📊 EXECUTIVE FIT REPORT
         ## 🚦 Status & Score
         * **Status:** [STRONG MATCH / POSSIBLE / WEAK]
         * **Fit Score:** [0-100]
-        *(Instruction for Score: Calculate strictly based on: Title Match (20pts) + Hard Skills (30pts) + Experience Years (20pts) + Industry Match (15pts) + Soft Skills (15pts). Do not default to 85. Be precise.)*
+        *(Score strictly based on: Title Match 20pts + Hard Skills 30pts + Experience Years 20pts + Industry Match 15pts + Soft Skills 15pts. Do not default to 85.)*
         
         * **Top Drivers:** (3 key strengths driving this score)
         * **Critical Gaps:** (3 key missing elements to address)
         
         ## 🎯 Alignment Matrix
-        *(Create a table mapping JD Requirements to Candidate Evidence)*
-        | JD Requirement | Your Evidence | Strength/Gap |
+        | JD Requirement | Your Evidence (Must include exact quote) | Strength/Gap |
         | :--- | :--- | :--- |
-        | (Requirement A) | (Evidence A) | (Strength) |
-        | (Requirement B) | (Evidence B) | (Gap - Advice) |
+        | (Requirement A) | "(Exact quote from resume proving this)" | (Strength) |
+        | (Requirement B) | "(Exact quote from JD) - Evidence missing" | (Gap) |
         
         ---
         
@@ -151,12 +149,9 @@ def career_coach_logic(license_key, resume_file, jd_file):
         *(4-5 lines. Front-load the JD keywords and years of experience.)*
         
         ## ⭐ Executive Bullet Upgrades (Full Experience)
-        *(Instruction: Rewrite ALL roles found in the resume. For the 3 most recent roles, you MUST provide 5-7 bullet points each to capture full depth. Do not summarize. Use the formula: Action + Scope + Outcome.)*
+        *(Rewrite ALL roles. For the 3 most recent roles, you MUST provide 5-7 bullet points each. Action + Scope + Outcome.)*
         
         **[Role Title]** | *[Company]* | *[Dates]*
-        * **[Outcome/Metric]:** [Action + Scope].
-        * **[Outcome/Metric]:** [Action + Scope].
-        * **[Outcome/Metric]:** [Action + Scope].
         * **[Outcome/Metric]:** [Action + Scope].
         * **[Outcome/Metric]:** [Action + Scope].
         *(Repeat for all roles)*
@@ -173,9 +168,8 @@ def career_coach_logic(license_key, resume_file, jd_file):
         *(A 3-sentence email opener for LinkedIn outreach)*
         """
         
-        # 5. Generate Content with Vision
-        # We increase temperature slightly to 0.4 for better writing flow
-        generation_config = genai.types.GenerationConfig(temperature=0.4)
+        # LOCKED TEMPERATURE (0.1) FOR FACTUAL ADHERENCE
+        generation_config = genai.types.GenerationConfig(temperature=0.1)
         
         response = model.generate_content(
             [prompt, resume_gemini, jd_gemini],
@@ -189,33 +183,25 @@ def career_coach_logic(license_key, resume_file, jd_file):
     except Exception as e:
         return f"System Error: {e}", None
 
-# --- 5. UI CONSTRUCTION ---
+# --- 6. UI CONSTRUCTION ---
 LOGO_PATH = "logo.jpg" 
 
 LEGAL_TEXT = """
 ### Privacy Policy & Legal Disclaimer
 **Effective Date:** January 2026 | **Seller:** Jicu Limited
-
-**1. Data Privacy**
-* **We do not store your files.** Uploaded documents are processed in-memory by secure AI and discarded immediately after generation.
-* **We do not sell data.** Your personal information is never sold to third parties.
-
-**2. Legal Disclaimer**
-* **No Guarantee of Employment:** This tool is for optimization purposes only. Use of this service does not guarantee job interviews or offers.
-* **AI Limitations:** Artificial intelligence can make errors. You are solely responsible for verifying all facts, dates, and metrics in your rewritten resume before submitting it.
+**1. Data Privacy:** We do not store your files.
+**2. Legal Disclaimer:** This tool is for optimization purposes only.
 """
 
-with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as app:
-    
+with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as gradio_app:
     user_key_state = gr.State("")
 
     # === VIEW 1: LOGIN SCREEN ===
     with gr.Column(visible=True) as login_view:
-        gr.Markdown("## ") # Spacer
+        gr.Markdown("## ")
         with gr.Row():
             with gr.Column(scale=1): pass
             with gr.Column(scale=2):
-                
                 if os.path.exists(LOGO_PATH):
                     gr.Image(value=LOGO_PATH, show_label=False, height=180, container=False)
                 else:
@@ -224,25 +210,19 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as app:
                 gr.Markdown("# 🔒 Client Portal")
                 gr.Markdown("Please enter your **Gumroad License Key** to access the strategist.")
                 
-                key_input = gr.Textbox(
-                    label="License Key", 
-                    placeholder="e.g. 14BCC8C0-...", 
-                    type="password"
-                )
+                key_input = gr.Textbox(label="License Key", type="password")
                 login_btn = gr.Button("Unlock Access", variant="primary", size="lg")
                 login_msg = gr.Markdown("")
             with gr.Column(scale=1): pass
 
     # === VIEW 2: MAIN APPLICATION ===
     with gr.Column(visible=False) as main_view:
-        
         with gr.Row():
             if os.path.exists(LOGO_PATH):
                 gr.Image(value=LOGO_PATH, show_label=False, height=60, scale=0, container=False)
             gr.Markdown("# 🏛️ AI Career Architect")
         
         with gr.Tabs():
-            
             # TAB 1: STRATEGY TOOL
             with gr.TabItem("🚀 Career Strategist"):
                 gr.Markdown("### Upload your documents to generate your Executive Alignment Package.")
@@ -281,6 +261,6 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="slate")) as app:
     login_btn.click(attempt_login, inputs=[key_input], outputs=[login_view, main_view, user_key_state, login_msg])
     generate_btn.click(career_coach_logic, inputs=[user_key_state, res_upload, jd_upload], outputs=[output_box, pdf_download])
 
-# --- LAUNCH SERVER ---
-PORT = int(os.environ.get("PORT", 7860))
-app.launch(server_name="0.0.0.0", server_port=PORT)
+# --- 7. MOUNT GRADIO TO FASTAPI ---
+# This merges your UI with the /health endpoint needed for Render
+app = gr.mount_gradio_app(app, gradio_app, path="/")
